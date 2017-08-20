@@ -3,6 +3,8 @@ const LINE_CHANNEL_ACCESS_TOKEN = process.env.CHANNEL_ACCESS_TOKEN;
 var express = require('express');
 var bodyParser = require('body-parser');
 var request = require('request');
+var mysql = require('mysql');
+
 var app = express();
 
 app.set('port', (process.env.PORT || 8000));
@@ -16,49 +18,58 @@ app.post('/callback', function(req, res){
     res.setHeader('Content-Type', 'text/plain');
     res.status(200).end();
     console.log(req.body.events[0].message.text);
-    var event = req.body.events[0];
-    var body = '';
+    event = req.body.events[0];
 
-    if (event.type == 'message' && event.message.text == '今日の一言お願いします。'){
-            body = {
+    //query用の乱数を取得する(範囲1~30)
+    var search_id = Math.ceil( Math.random()*30 );
+    console.log('search_id//' + search_id);
+
+    var connection = mysql.createPool({
+      host: 'us-cdbr-iron-east-05.cleardb.net',
+      user: 'b1ac492ff93a44',
+      password: process.env.MYSQL_PASSWORD,
+      database: 'heroku_0c6f29c1cdf7663'
+    });
+
+    var maxim = '楽観的でありなさい。過去を悔やむのではなく、未来を不安視するのでもなく、今現在の「ここ」だけを見るのだ。';
+
+    connection.query('select maxim from adler where id = ' + search_id, 
+      function (error, results, fields) {
+        console.log('******results******');
+        console.log(results[0].maxim);
+
+        if (event.type == 'message' && event.message.text == '今日の一言お願いします。'){
+          var body = {
             replyToken: event.replyToken,
             messages: [{
               type: 'text',
-              text: 'どうしたらみんなを喜ばすことが出来るかを毎日考えるようにしなさい。そうすれば、憂鬱な気持ちなど吹き飛んでしまいます。反対に自分のことばかり考えていたら、どんどん不幸になってしまいます。'
+              text: results[0].maxim
             }]
-        }
-    } else if (event.type == 'message' && event.message.text == '今日の一言'){
-            body = {
+          }
+        } else {
+          var body = {
             replyToken: event.replyToken,
             messages: [{
               type: 'text',
-              text: '「自分は役立っている」と実感するのに、相手から感謝されることや、褒められることは不要である。貢献感は「自己満足」でいいのだ。'
+              text: maxim
             }]
-        }
-    } else {
-            body = {
-            replyToken: event.replyToken,
-            messages: [{
-              type: 'text',
-              text: 'あなたが悩んでいる問題は本当にあなたの問題だろうか。その問題を放置した場合に困るのは誰か、冷静に考えてみることだ。'
-            }]
+          }
         }
 
-    }
+         var headers = {
+             'Content-Type': 'application/json',
+             'Authorization': 'Bearer ' + LINE_CHANNEL_ACCESS_TOKEN
+         }
 
-        var headers = {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + LINE_CHANNEL_ACCESS_TOKEN
-        }
-
-        var url = 'https://api.line.me/v2/bot/message/reply';
-        request({
-          url: url,
-          method: 'POST',
-          headers: headers,
-            body: body,
-            json: true
-        });
+         var url = 'https://api.line.me/v2/bot/message/reply';
+         request({
+             url: url,
+             method: 'POST',
+             headers: headers,
+             body: body,
+             json: true
+         });
+    })
 });
 
 
