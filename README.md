@@ -1,2 +1,2 @@
 # ADLER_LINE_BOT
-アドラー心理学のエッセンスを教えてくれるBOTです。（仏教等のありがたいお言葉も教えてくれます。）
+Adler's maxim BOT
